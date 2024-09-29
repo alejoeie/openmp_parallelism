@@ -6,9 +6,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <merge_sort.h>
+#include <cilk/cilk.h>
+#include <merge_sort_cilk.h>
 
-void merge(int* arr, int left, int mid, int right) {
+static void merge(int* arr, int left, int mid, int right) {
     int first_half_size = mid - left + 1; // Holds size of first half
     int second_half_size = right - mid; // Holds size of second half
     int i, j;
@@ -54,52 +55,31 @@ void merge(int* arr, int left, int mid, int right) {
     }
 }
 
-void merge_sort(int* arr, int left, int right) {
-
+void mergeSort(int* arr, int left, int right) {
     if (left < right) {
         int mid = left + (right - left) / 2;
 
-        #pragma omp task shared(arr)
-        printf("Executing merge_sort function - filling left half of array, thread %d executing\n", omp_get_thread_num());
-        merge_sort(arr, left, mid); // first half of the array
+        cilk_spawn mergeSort(arr, left, mid);
+        mergeSort(arr, mid+1, right);
 
-        #pragma omp task shared(arr)
-        printf("Executing merge_sort function - filling right half of array, thread %d executing\n", omp_get_thread_num());
-        merge_sort(arr, mid+1, right); // second half of the array
-
-        #pragma omp taskwait
+        cilk_sync;
         merge(arr, left, mid, right);
     }
 }
-
-void print_arr_elems(int* arr, int length){
+void printArr(int* arr, int length) {
     printf("[");
     for(size_t ii = 0; ii < length; ii++) {
         printf(" %d,", arr[ii]);
     }
     printf("]\n");
-
 }
-
 int main() {
-    // Array should be 14, 15, 24, 25, 26
-    omp_set_num_threads(8);
-    int test_arr[] = {24, 25, 26, 7, 14, 15};
-    double i_time, f_time;
+    int test_arr[] = {56, 7, 87, 13, 59, 90};
 
     int size_test_arr = sizeof(test_arr) / sizeof(test_arr[0]);
-    print_arr_elems(test_arr, SIZE(test_arr, test_arr[0]));
-    #pragma omp parallel 
-    {
-        i_time = omp_get_wtime();
-        #pragma omp single
-        printf("Executing parallel section, thread %d executing\n", omp_get_thread_num());
-        merge_sort(test_arr, 0, size_test_arr-1);
 
-        f_time = omp_get_wtime();
-        printf("Stopping parallel section, thread %d executing, time took: %fs\n", omp_get_thread_num(), f_time-i_time);
-    }
-    print_arr_elems(test_arr, SIZE(test_arr, test_arr[0]));
+    mergeSort(test_arr, 0, SIZE(test_arr, test_arr[0])-1);
 
+    printArr(test_arr, SIZE(test_arr, test_arr[0]));
     return 0;
 }
