@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <merge_sort.h>
 
 static void merge(int* arr, int left, int mid, int right) {
@@ -14,7 +15,8 @@ static void merge(int* arr, int left, int mid, int right) {
     int i, j;
 
     // Left and right arrays copied from original array
-    int L[first_half_size], R[second_half_size];
+    int* L = (int*) malloc(first_half_size * sizeof(int));
+    int* R = (int*) malloc(second_half_size * sizeof(int));
 
     // #pragma omp parallel for shared(arr) private(i, j)
     // Fill in each array a copy of the respective values of arr
@@ -52,54 +54,83 @@ static void merge(int* arr, int left, int mid, int right) {
         right_iterable++;
         minimum_element_original_array++;
     }
+
+    free(L);
+    free(R);
 }
 
 void merge_sort(int* arr, int left, int right) {
 
     if (left < right) {
         int mid = left + (right - left) / 2;
+        #pragma omp parallel 
+        {
+            #pragma omp single 
+            {
+                #pragma omp task
+                merge_sort(arr, left, mid); // first half of the array
 
-        #pragma omp task shared(arr)
-        printf("Executing merge_sort function - filling left half of array, thread %d executing\n", omp_get_thread_num());
-        merge_sort(arr, left, mid); // first half of the array
+                #pragma omp task
+                merge_sort(arr, mid+1, right); // second half of the array
 
-        #pragma omp task shared(arr)
-        printf("Executing merge_sort function - filling right half of array, thread %d executing\n", omp_get_thread_num());
-        merge_sort(arr, mid+1, right); // second half of the array
-
-        #pragma omp taskwait
-        merge(arr, left, mid, right);
+                #pragma omp taskwait
+                merge(arr, left, mid, right);
+            }
+        }
     }
 }
 
 void print_arr_elems(int* arr, int length){
     printf("[");
     for(size_t ii = 0; ii < length; ii++) {
-        printf(" %d,", arr[ii]);
+        printf("%d ", arr[ii]);
     }
     printf("]\n");
 
 }
 
-int main() {
-    // Array should be 14, 15, 24, 25, 26
-    omp_set_num_threads(8);
+int main(int argc, char* argv[]) {    
     int test_arr[] = {24, 25, 26, 7, 14, 15};
     double i_time, f_time;
 
     int size_test_arr = sizeof(test_arr) / sizeof(test_arr[0]);
-    print_arr_elems(test_arr, SIZE(test_arr, test_arr[0]));
-    #pragma omp parallel 
-    {
-        i_time = omp_get_wtime();
-        #pragma omp single
-        printf("Executing parallel section, thread %d executing\n", omp_get_thread_num());
-        merge_sort(test_arr, 0, SIZE(test_arr, test_arr[0])-1);
+    // print_arr_elems(test_arr, SIZE(test_arr, test_arr[0]));
 
-        f_time = omp_get_wtime();
-        printf("Stopping parallel section, thread %d executing, time took: %fs\n", omp_get_thread_num(), f_time-i_time);
+    if (argc > 1) {
+        int arr_size_by_user = atoi(argv[2]);
+        int* usr_arr = (int*)malloc(arr_size_by_user * sizeof(int));
+
+        for (int i = 0; i < arr_size_by_user; i++) {
+            usr_arr[i] = rand() % arr_size_by_user;
+        }
+        // print_arr_elems(usr_arr, arr_size_by_user);
+        omp_set_num_threads(atoi(argv[1]));
+            printf("Executing parallel section");
+            i_time = omp_get_wtime();
+            merge_sort(usr_arr, 0, arr_size_by_user-1);
+            f_time = omp_get_wtime();
+        printf("Time taken with %d threads: %fs\n", atoi(argv[1]), f_time-i_time);
+        // print_arr_elems(usr_arr, arr_size_by_user);
+
+        // for (int i = 0; i < arr_size_by_user; i++) {
+        //     usr_arr[i] = rand() % 100000;
+        // }
+        // // print_arr_elems(usr_arr, arr_size_by_user);
+        // omp_set_num_threads(10);
+        //     printf("Executing parallel section");
+        //     i_time = omp_get_wtime();
+        //     merge_sort(usr_arr, 0, arr_size_by_user-1);
+        //     f_time = omp_get_wtime();
+        // printf("Time taken with 10 threads: %fs\n", f_time-i_time);
+        // // print_arr_elems(usr_arr, arr_size_by_user);
+
+        free(usr_arr);
+    } else {
+        perror("User must enter number of threads for parallelizing algorithm");
     }
-    print_arr_elems(test_arr, SIZE(test_arr, test_arr[0]));
+
+    
+
 
     return 0;
 }

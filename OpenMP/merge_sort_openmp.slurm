@@ -8,3 +8,4 @@
 cd $SLURM_SUBMIT_DIR
 
 make all
+./test.exe 10 100000

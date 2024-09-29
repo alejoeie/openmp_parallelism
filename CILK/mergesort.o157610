@@ -1,8 +1,0 @@
-/var/spool//job157610/slurm_script: line 12: export: `=': not a valid identifier
-/var/spool//job157610/slurm_script: line 12: export: `16': not a valid identifier
-make build_cilk
-make[1]: Entering directory `/home/curso-791/merge_sort_parallel/CILK'
-gcc -Iinclude/ -fopenmp -fcilkplus -o test.exe -std=c99 src/merge_sort_cilk.c
-make[1]: Leaving directory `/home/curso-791/merge_sort_parallel/CILK'
-./test.exe
-[ 7, 13, 56, 59, 87, 90,]

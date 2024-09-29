@@ -8,4 +8,3 @@ build:
 
 all: 
 	make build
-	./test.exe

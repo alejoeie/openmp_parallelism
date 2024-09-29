@@ -59,7 +59,7 @@ void mergeSort(int* arr, int left, int right) {
     if (left < right) {
         int mid = left + (right - left) / 2;
 
-        cilk_spawn mergeSort(arr, left, mid);
+        cilk_spawn mergeSort(arr, left, mid); 
         mergeSort(arr, mid+1, right);
 
         cilk_sync;
